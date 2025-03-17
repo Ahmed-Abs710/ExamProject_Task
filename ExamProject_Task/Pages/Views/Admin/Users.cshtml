@@ -1,0 +1,118 @@
+﻿<!DOCTYPE html>
+<html lang="ar">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>تسجيل الدخول</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    
+
+    <style>
+        body {
+            background-color: #f8f9fa;
+        }
+        .login-container {
+            max-width: 400px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #fff;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <div class="login-container">
+            <h3 class="text-center mb-4">تسجيل مستخدم</h3>
+
+            
+                <!-- إدخال اسم المستخدم -->
+                <div class="mb-3">
+                    <label for="username" class="form-label">اسم المستخدم</label>
+                    <input type="text" class="form-control" id="username" placeholder="أدخل اسم المستخدم">
+                </div>
+
+                <!-- إدخال كلمة المرور -->
+                <div class="mb-3">
+                    <label for="password" class="form-label">كلمة المرور</label>
+                    <input type="password" class="form-control" id="password" placeholder="أدخل كلمة المرور">
+                </div>
+
+                <!-- قائمة المستخدمين -->
+               @*  <div class="mb-3">
+                    <label for="userList" class="form-label">اختر مستخدم</label>
+                    <select class="form-select" id="userList">
+                        <option value="">اختر من القائمة...</option>
+                    </select>
+                </div> *@
+
+                <!-- زر تسجيل الدخول -->
+                <button type="button" id="btnAdd" onclick="AddUserApi()" class="btn btn-primary w-100">تسجيل الدخول</button>
+
+            <select id="myDropdown" class="form-control mt-4">
+                <option value="">اختر من القائمة</option>
+            </select>
+
+          
+        </div>
+    </div>
+
+    <script>
+        function AddUserApi() {
+
+            var username = $("#username").val();
+            var password = $("#password").val();
+            // debugger;
+            $.ajax({
+                url: "/users", // تأكد إنه نفس مسار الـ API
+                type: "POST",
+                contentType: "application/x-www-form-urlencoded",
+                data: { UserName: username, Password: password },
+                success: function (data) {
+                    alert(data);
+                    console.log("تم إضافة المستخدم بنجاح", data);
+                    //GetAllUsers()
+                },
+                error: function (xhr, status, error) {
+                    alert(error);
+                }
+            });
+        }
+
+        function GetAllUsers() {
+            $.ajax({
+                url: "/users", // تأكد إنه نفس مسار الـ API
+                type: "GET",
+                contentType: "application/x-www-form-urlencoded",
+                data: { UserName: username, Password: password },
+                success: function (data) {
+                    console.log(data);
+                    var dropdown = $('#myDropdown');
+                    dropdown.empty();
+                    dropdown.append('<option value="">اختر من القائمة</option>');
+                    $.each(data, function (index, item) {
+                        dropdown.append('<option value="' + item.id + '">' + item.userName + '</option>');
+                    });
+                },
+                error: function (xhr, status, error) {
+                    alert(error);
+                }
+            });
+        }
+      
+        window.onload = function () {
+                $(function () {
+                    console.log("jQuery يعمل بنجاح!");
+                   //  GetAllUsers();
+
+                });
+           
+        };
+
+     
+    </script>
+
+</body>
+</html>

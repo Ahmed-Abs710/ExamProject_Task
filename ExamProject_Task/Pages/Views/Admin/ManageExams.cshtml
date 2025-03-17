@@ -1,0 +1,318 @@
+﻿<!DOCTYPE html>
+<html lang="ar">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>إدارة الامتحانات</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <style>
+        .table tbody tr.selected {
+            background-color: #0d6efd !important;
+            color: white;
+        }
+    </style>
+</head>
+<body class="container mt-4">
+
+    <h2 class="mb-3">إدارة الامتحانات</h2>
+
+    <div class="row">
+        <!-- جريد الامتحانات -->
+        <div class="col-md-4">
+            <h4>الامتحانات</h4>
+            <table id="examGrid" class="table table-bordered table-hover">
+                <thead class="table-dark">
+                    <tr>
+                        <th>Exam ID</th>
+                        <th>Exam Name</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+
+        <!-- جريد الأسئلة -->
+        <div class="col-md-4">
+            <h4>الأسئلة</h4>
+            <table id="questionGrid" class="table table-bordered table-hover">
+                <thead class="table-dark">
+                    <tr>
+                        <th>Question ID</th>
+                        <th>Question Text</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+
+        <!-- جريد الاختيارات -->
+        <div class="col-md-4">
+            <h4>الاختيارات</h4>
+            <table id="choiceGrid" class="table table-bordered table-hover">
+                <thead class="table-dark">
+                    <tr>
+                        <th>Choice ID</th>
+                        <th>Choice Text</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+
+        $(document).ready(function () {
+            let exams = []; // تخزين البيانات بعد تحميلها
+
+            let ExamID = { Value: null };
+            let QuestionId = { Value: null };
+            // تحميل البيانات عند فتح الصفحة
+            loadExams();
+
+            function loadExams() {
+                $.ajax({
+                    url: "/Admin/GetExamData",
+                    type: "GET",
+                    success: function (data) {
+                        exams = data;
+                        populateExamGrid(exams);
+                    },
+                    error: function (err) {
+                        console.error("Error loading exams:", err);
+                    }
+                });
+            }
+
+            function populateExamGrid(exams) {
+                let examTable = $("#examGrid tbody");
+                examTable.empty();
+
+                exams.forEach(exam => {
+                    let row = `<tr data-id="${exam.examId}">
+                                    <td>${exam.examId}</td>
+                                    <td contenteditable="true" class="exam-name">${exam.examName}</td>
+                                    <td>
+                                        <button class="btn btn-success btn-sm save-exam">💾</button>
+                                        <button class="btn btn-danger btn-sm delete-exam">🗑</button>
+                                    </td>
+                                </tr>`;
+                    examTable.append(row);
+                });
+            }
+
+            // عند تحديد امتحان
+            $("#examGrid").on("click", "tr", function () {
+                $("#examGrid tr").removeClass("selected");
+                $(this).addClass("selected");
+
+                let examId = $(this).data("id");
+                ExamID.Value = examId;
+                let selectedExam = exams.find(e => e.examId === examId);
+
+                if (selectedExam) {
+                    populateQuestionGrid(selectedExam.questions);
+                }
+            });
+
+            function populateQuestionGrid(questions) {
+                let questionTable = $("#questionGrid tbody");
+                questionTable.empty();
+
+                questions.forEach(question => {
+                    let row = `<tr data-id="${question.questionId}">
+                                    <td>${question.questionId}</td>
+                                    <td contenteditable="true" class="question-text">${question.questionText}</td>
+                                    <td>
+                                        <button class="btn btn-success btn-sm save-question">💾</button>
+                                        <button class="btn btn-danger btn-sm delete-question">🗑</button>
+                                    </td>
+                                </tr>`;
+                    questionTable.append(row);
+                });
+            }
+
+            // عند تحديد سؤال
+            $("#questionGrid").on("click", "tr", function () {
+                $("#questionGrid tr").removeClass("selected");
+                $(this).addClass("selected");
+
+                let questionId = $(this).data("id");
+                QuestionId.Value = questionId;
+                let selectedExam = exams.find(e => e.questions.some(q => q.questionId === questionId));
+                let selectedQuestion = selectedExam.questions.find(q => q.questionId === questionId);
+
+                if (selectedQuestion) {
+                    populateChoiceGrid(selectedQuestion.choices);
+                }
+            });
+
+            function populateChoiceGrid(choices) {
+                let choiceTable = $("#choiceGrid tbody");
+                choiceTable.empty();
+
+                choices.forEach(choice => {
+                    let row = `<tr data-id="${choice.choiceId}">
+                                    <td>${choice.choiceId}</td>
+                                    <td contenteditable="true" class="choice-text">${choice.choiceText}</td>
+                                    <td>
+                                        <button class="btn btn-success btn-sm save-choice">💾</button>
+                                        <button class="btn btn-danger btn-sm delete-choice">🗑</button>
+                                    </td>
+                                </tr>`;
+                    choiceTable.append(row);
+                });
+            }
+
+            // ✅ حفظ التعديلات في الامتحان
+            $("#examGrid").on("click", ".save-exam", function () {
+                let row = $(this).closest("tr");
+                let examId = row.data("id");
+                let newName = row.find(".exam-name").text();
+                let Exam = { Title: newName, Id: examId };
+                ExamID.Value = examId;
+                $.ajax({
+                    url: "/Admin/UpdateExam?id" + examId,
+                    type: "PUT",
+                    contentType: "application/json",
+                    data: JSON.stringify(Exam) ,
+                    success: function (data) {
+                        console.log("data", data);
+                    },
+                    error: function (err) {
+                        console.error("Error loading exams:", err);
+                    }
+                });
+                console.log("تم تحديث الامتحان:", examId, newName);
+                alert("تم تحديث الامتحان بنجاح!");
+            });
+
+            // ❌ حذف الامتحان
+            $("#examGrid").on("click", ".delete-exam", function () {
+                let row = $(this).closest("tr");
+                let examId = row.data("id");
+                let isConfirmed = confirm("هل أنت متأكد من أنك تريد الحذف؟");
+                if (isConfirmed) {
+                    $.ajax({
+                        url: "/Admin/DeleteExam?id=" + examId,
+                        type: "DELETE",
+                        contentType: "application/json",
+                       // data: JSON.stringify(examId),
+                        success: function (data) {
+                            row.remove();
+                            console.log("تم حذف الامتحان:", examId);
+                            alert("تم حذف الامتحان بنجاح!");
+                            console.log("data", data);
+                        },
+                        error: function (err) {
+                            console.error("Error loading exams:", err);
+                        }
+                    });
+                }
+                
+                
+            });
+
+            // ✅ حفظ التعديلات في السؤال
+            $("#questionGrid").on("click", ".save-question", function () {
+                let row = $(this).closest("tr");
+                let questionId = row.data("id");
+                let newText = row.find(".question-text").text();
+                let Question = { Title: newText, Id: questionId, ExamId: ExamID.Value };
+                $.ajax({
+                    url: "/Admin/UpdateQuestion",
+                    type: "PUT",
+                    contentType: "application/json",
+                    data: JSON.stringify(Question),
+                    success: function (data) {
+                        console.log("data", data);
+                    },
+                    error: function (err) {
+                        console.error("Error loading exams:", err);
+                    }
+                });
+                console.log("تم تحديث السؤال:", questionId, newText);
+                alert("تم تحديث السؤال بنجاح!");
+            });
+
+            // ❌ حذف السؤال
+            $("#questionGrid").on("click", ".delete-question", function () {
+                let row = $(this).closest("tr");
+                let questionId = row.data("id");
+                let isConfirmed = confirm("هل أنت متأكد من أنك تريد الحذف؟");
+                if (isConfirmed) {
+                    $.ajax({
+                        url: "/Admin/DeleteQuestion?id=" + questionId,
+                        type: "DELETE",
+                        contentType: "application/json",
+                       // data: JSON.stringify(Question),
+                        success: function (data) {
+                            row.remove();
+                            console.log("تم حذف السؤال:", questionId);
+                            alert("تم حذف السؤال بنجاح!");
+                            console.log("data", data);
+                        },
+                        error: function (err) {
+                            console.error("Error loading exams:", err);
+                        }
+                    });
+                }
+               
+            });
+
+            // ✅ حفظ التعديلات في الاختيار
+            $("#choiceGrid").on("click", ".save-choice", function () {
+                let row = $(this).closest("tr");
+                let choiceId = row.data("id");
+                let newText = row.find(".choice-text").text();
+                let Choise = { Text: newText, Id: choiceId, QuestionId: QuestionId.Value };
+                $.ajax({
+                    url: "/Admin/UpdateChoice",
+                    type: "PUT",
+                    contentType: "application/json",
+                    data: JSON.stringify(Choise),
+                    success: function (data) {
+                        console.log("data", data);
+                    },
+                    error: function (err) {
+                        console.error("Error loading exams:", err);
+                    }
+                });
+                console.log("تم تحديث الاختيار:", choiceId, newText);
+                alert("تم تحديث الاختيار بنجاح!");
+            });
+
+            // ❌ حذف الاختيار
+            $("#choiceGrid").on("click", ".delete-choice", function () {
+                let row = $(this).closest("tr");
+                let choiceId = row.data("id");
+                let isConfirmed = confirm("هل أنت متأكد من أنك تريد الحذف؟");
+                if (isConfirmed) {
+                    $.ajax({
+                        url: "/Admin/DeleteChoice?id=" + choiceId,
+                        type: "DELETE",
+                        contentType: "application/json",
+                        // data: JSON.stringify(Question),
+                        success: function (data) {
+                            row.remove();
+                            console.log("تم حذف الاختيار:", choiceId);
+                            alert("تم حذف الاختيار بنجاح!");
+                            console.log("data", data);
+                        },
+                        error: function (err) {
+                            console.error("Error loading exams:", err);
+                        }
+                    });
+                }
+                
+            });
+        });
+
+
+    </script>
+</body>
+</html>

@@ -1,0 +1,75 @@
+﻿
+
+<div class="container d-flex justify-content-center align-items-center" style="height: 100vh;">
+    <div class="card shadow-lg p-4" style="width: 350px;">
+        <h2 class="text-center mb-4">Login</h2>
+        <div class="alert alert-danger d-none" id="error-message"></div>
+        <div class="alert alert-success d-none" id="success-message"></div>
+
+        <div class="mb-3">
+            <label for="username" class="form-label">Username</label>
+            <input type="text" class="form-control" id="username">
+        </div>
+        <div class="mb-3">
+            <label for="password" class="form-label">Password</label>
+            <input type="password" class="form-control" id="password">
+        </div>
+        <div class="mb-3 form-check">
+            <input type="checkbox" class="form-check-input" id="rememberMe">
+            <label class="form-check-label" for="rememberMe">Remember Me</label>
+        </div>
+        <button class="btn btn-primary w-100" id="loginBtn">Login</button>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script>
+        $(document).ready(function () {
+            $("#loginBtn").click(function () {
+                var username = $("#username").val().trim();
+                var password = $("#password").val().trim();
+                var rememberMe = $("#rememberMe").is(":checked");
+
+                if (username === "" || password === "") {
+                    $("#error-message").text("Please enter username and password").removeClass("d-none");
+                    return;
+                }
+
+                $.ajax({
+                    url: "/Admin/AdminLogin",
+                    type: "POST",
+                    contentType: "application/json",
+                    data: JSON.stringify({
+                        Username: username,
+                        Password: password,
+                        RememberMe: rememberMe
+                    }),
+                    success: function (response) {
+                        // $("#success-message").text(response.message).removeClass("d-none");
+                        // $("#error-message").addClass("d-none");
+                        
+                        setTimeout(function () {
+                            let path = null;
+                            if (response.role ==="Admin") {
+                                path = "/Admin";
+                                window.location.href = path;
+                            }else{
+                                $("#error-message").text("ليس لديك صلاحية للدخول هنا").removeClass("d-none");
+                            }
+                        }, 1500);
+                    },
+                    error: function (xhr) {
+                        $("#error-message").text(xhr.responseText || "Invalid credentials").removeClass("d-none");
+                        $("#success-message").addClass("d-none");
+                    }
+                });
+            });
+        });
+    </script>
+}
+
+
+
+
+  

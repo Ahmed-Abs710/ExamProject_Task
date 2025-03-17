@@ -1,0 +1,185 @@
+﻿<!DOCTYPE html>
+<html lang="ar">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>إضافة امتحان</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+</head>
+<body class="bg-light">
+
+    <div class="container mt-4">
+        <div class="card shadow-lg p-4">
+            <h3 class="text-center mb-4">إضافة امتحان جديد</h3>
+
+            <!-- بيانات الامتحان -->
+            <div class="mb-3">
+                <label class="form-label">اسم الامتحان</label>
+                <input type="text" class="form-control" id="examName" placeholder="أدخل اسم الامتحان">
+            </div>
+
+            @* <div class="mb-3">
+                <label class="form-label">وصف الامتحان</label>
+                <textarea class="form-control" id="examDescription" rows="2" placeholder="أدخل وصفًا مختصرًا"></textarea>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">مدة الامتحان (بالدقائق)</label>
+                <input type="number" class="form-control" id="examDuration" min="1">
+            </div> *@
+
+            <hr>
+
+            <!-- إضافة أسئلة -->
+            <h4>الأسئلة</h4>
+            <div id="questionsContainer"></div>
+
+            <button type="button" class="btn btn-success mt-3" id="addQuestion">+ إضافة سؤال</button>
+
+            <hr>
+
+            <!-- زر الحفظ -->
+            <button class="btn btn-primary w-100 mt-3" id="saveExam">حفظ الامتحان</button>
+        </div>
+    </div>
+
+    <script>
+        $(document).ready(function () {
+            let questionCount = 0;
+
+            // إضافة سؤال جديد
+            $("#addQuestion").click(function () {
+                questionCount++;
+                let questionHtml = `
+                    <div class="card mt-3 p-3 question-block">
+                        <label class="form-label">السؤال ${questionCount}</label>
+                        <input type="text" class="form-control question-text" placeholder="اكتب السؤال هنا">
+
+                        <div class="choicesContainer mt-2"></div>
+
+                        <button type="button" class="btn btn-secondary btn-sm mt-2 addChoice">+ إضافة اختيار</button>
+                        <button type="button" class="btn btn-danger btn-sm mt-2 removeQuestion">حذف السؤال</button>
+                    </div>
+                `;
+                $("#questionsContainer").append(questionHtml);
+            });
+
+            // إضافة اختيار بحد أقصى 4 اختيارات
+            $(document).on("click", ".addChoice", function () {
+                let choicesContainer = $(this).siblings(".choicesContainer");
+                let choiceCount = choicesContainer.find(".choice-block").length;
+
+                if (choiceCount < 4) {
+                    let choiceHtml = `
+                        <div class="input-group mt-2 choice-block">
+                            <input type="text" class="form-control choice-text" placeholder="اكتب الاختيار">
+                            <button class="btn btn-outline-primary markCorrect" type="button">✅</button>
+                            <button class="btn btn-outline-danger removeChoice" type="button">❌</button>
+                        </div>
+                    `;
+                    choicesContainer.append(choiceHtml);
+                } else {
+                    alert("لا يمكنك إضافة أكثر من 4 اختيارات لهذا السؤال.");
+                }
+            });
+
+            // حذف سؤال
+            $(document).on("click", ".removeQuestion", function () {
+                $(this).closest(".question-block").remove();
+            });
+
+            // حذف اختيار
+            $(document).on("click", ".removeChoice", function () {
+                $(this).closest(".choice-block").remove();
+            });
+
+            // تحديد الإجابة الصحيحة
+            $(document).on("click", ".markCorrect", function () {
+                $(this).closest(".choicesContainer").find(".markCorrect").removeClass("btn-success");
+                $(this).addClass("btn-success");
+            });
+
+
+            $("#saveExam").click(function () {
+                let examData = {
+                    name: $("#examName").val(),
+                    description: $("#examDescription").val(),
+                    duration: $("#examDuration").val(),
+                    questions: []
+                };
+
+                $(".question-block").each(function () {
+                    let questionText = $(this).find(".question-text").val();
+                    let choices = [];
+                    let correctChoice = null;
+
+                    $(this).find(".choice-block").each(function (index) {
+                        let choiceText = $(this).find(".choice-text").val();
+                        choices.push(choiceText);
+                        if ($(this).find(".markCorrect").hasClass("btn-success")) {
+                            correctChoice = index;
+                        }
+                    });
+
+                    examData.questions.push({
+                        question: questionText,
+                        choices: choices,
+                        correctAnswer: correctChoice
+                    });
+                });
+
+                //  إرسال البيانات إلى الباك إند
+                $.ajax({
+                    url: "/api/exams/save",
+                    type: "POST",
+                    contentType: "application/json",
+                    data: JSON.stringify(examData),
+                    success: function (response) {
+                        alert(response);
+                        console.log("تم حفظ الامتحان بنجاح!");
+                    },
+                    error: function (xhr) {
+                        alert("حدث خطأ أثناء الحفظ: " + xhr.responseText);
+                    }
+                });
+            });
+
+
+            // حفظ الامتحان
+            // $("#saveExam").click(function () {
+            //     let examData = {
+            //         name: $("#examName").val(),
+            //         description: $("#examDescription").val(),
+            //         duration: $("#examDuration").val(),
+            //         questions: []
+            //     };
+
+            //     $(".question-block").each(function () {
+            //         let questionText = $(this).find(".question-text").val();
+            //         let choices = [];
+            //         let correctChoice = null;
+
+            //         $(this).find(".choice-block").each(function (index) {
+            //             let choiceText = $(this).find(".choice-text").val();
+            //             choices.push(choiceText);
+            //             if ($(this).find(".markCorrect").hasClass("btn-success")) {
+            //                 correctChoice = index;
+            //             }
+            //         });
+
+            //         examData.questions.push({
+            //             question: questionText,
+            //             choices: choices,
+            //             correctAnswer: correctChoice
+            //         });
+            //     });
+
+            //     console.log("بيانات الامتحان:", examData);
+            //     alert("تم حفظ الامتحان بنجاح!");
+            // });
+        });
+    </script>
+
+</body>
+</html>
